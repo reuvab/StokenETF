@@ -1,11 +1,22 @@
+'use client';
+
 import { Card, CardTitle } from '@/components/ui/card';
+import { erc20Abi } from 'viem';
+import { useAccount, useReadContracts } from 'wagmi';
 
 function formatNumberToUSD(num: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
 }
 
-function formatNumber(num: number) {
-  return new Intl.NumberFormat('en-US').format(num);
+function formatNumber(num: bigint, decimals = 18) {
+  // format a number from wei to ether
+  const units = 10 ** decimals;
+  const formatted = num / BigInt(units);
+
+  return formatted.toLocaleString('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
 }
 
 const TokenLine = ({
@@ -16,7 +27,7 @@ const TokenLine = ({
 }: {
   icon: React.ReactNode;
   name: string;
-  value: number;
+  value: bigint;
   usdValue: number;
 }) => {
   return (
@@ -34,6 +45,19 @@ const TokenLine = ({
 };
 
 export default function Home() {
+  const { address } = useAccount();
+  const { data } = useReadContracts({
+    allowFailure: false,
+    contracts: [
+      {
+        address: '0xc4bF5CbDaBE595361438F8c6a187bDc330539c60',
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [address ?? '0x'],
+      },
+    ],
+  });
+
   return (
     <main className='flex min-h-screen flex-col items-center justify-between px-24 relative pt-20'>
       <div className='absolute bg-slate-700 h-[200px] left-0 top-0 w-full -z-10'>&nbsp;</div>
@@ -45,8 +69,10 @@ export default function Home() {
         <Card className='p-4 flex flex-col gap-4'>
           <CardTitle className='text-2xl text-gray-700 font-medium'>My Portfolio</CardTitle>
           <div className='grid w-96 grid-flow-row gap-3'>
-            <TokenLine icon={<SETF />} name='SETF' value={12.1235} usdValue={1256} />
-            <TokenLine icon={<GHO />} name='GHO' value={100000} usdValue={100000} />
+            <TokenLine icon={<SETF />} name='SETF' value={BigInt(12000000000000)} usdValue={1256} />
+            {data ? (
+              <TokenLine icon={<GHO />} name='GHO' value={data[0]} usdValue={100000} />
+            ) : null}
           </div>
         </Card>
       </div>
